@@ -4,17 +4,12 @@
 #ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #endif
-
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <iphlpapi.h>
-#include <vector>
-#include <stdio.h>
+//#include <winsock2.h> включен в ws2tcpip.h
+#include <ws2tcpip.h> 
 #include <iostream>
 #include <thread>
 
@@ -79,7 +74,7 @@ int main()
     do 
     {
         std::cin >> msg;
-        if (!work) { std::cout << "The message could be sent because ServerDisConnected!\n"; break; }
+        if (!work) { std::cout << "The message could not be sent because ServerDisConnected!\n"; break; }
         int msgSize{ 0 };
         msgSize = msg.size();
         send(Connect, (char*)&msgSize, sizeof(int), NULL);
