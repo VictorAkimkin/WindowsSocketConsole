@@ -11,6 +11,7 @@
 //#include <winsock2.h> включен в ws2tcpip.h
 #include <ws2tcpip.h> 
 #include <iostream>
+#include <string>
 #include <thread>
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -73,10 +74,10 @@ int main()
     // цикл для ввода с консоли сообщений и отправки их на сервер
     do 
     {
-        std::cin >> msg;
+        std::getline (std::cin, msg);
         if (!work) { std::cout << "The message could not be sent because ServerDisConnected!\n"; break; }
         int msgSize{ 0 };
-        msgSize = msg.size();
+        msgSize = msg.length();
         send(Connect, (char*)&msgSize, sizeof(int), NULL);
         send(Connect, msg.c_str(), msgSize, NULL);
         Sleep(50);

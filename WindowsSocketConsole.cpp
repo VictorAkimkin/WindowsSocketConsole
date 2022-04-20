@@ -12,13 +12,17 @@
 #include <ws2tcpip.h> 
 #include <iostream>
 #include <vector>
+#include <map>
 #include <thread>
 #include <string>
 
 #pragma comment(lib, "Ws2_32.lib")
 
-// выводит в консоль данные из addrinfo* res
-void addrinf_out(ADDRINFOA& inf, PADDRINFOA res);
+
+void addrinf_out(ADDRINFOA& inf, PADDRINFOA res);// выводит в консоль данные из addrinfo* res
+bool ChangeName(const char* str, int msgSize);// проверка наличия команды смены имени клиента
+void MassSending(const std::map <SOCKET, std::string> *clConnections, const char* clMsg2, 
+    int Size2, bool except, SOCKET sock);// рассылка сообщений клиентам
 
 int main()
 {
@@ -30,8 +34,9 @@ int main()
     int sizeOfAddr = sizeof(addr);
     SOCKET sockListen;
     // клиентские сокеты и потоки
-    std::vector <SOCKET> clConnections;
+    std::map <SOCKET, std::string> clConnections;
     std::vector <std::thread> ths;
+   // std::map <SOCKET, std::thread> ths;
 
     // переменная для сообщения клиенту при подключении
     std::string welcomeMsg = "";
@@ -62,25 +67,79 @@ int main()
     std::cout << " \n\n";
 
     // ретрансляция сообщений от клиента всем остальным клиентам
-    auto ClientHandler = [&](int index)
-    { char* clMsg;
-    int msgSize{ 0 };
+    auto ClientHandler = [&](SOCKET index)
+    { 
+    char *clMsg, *clMsg2;
+    int msgSize{0}, Size2{0};
+
     while (1)
     {
-        if (SOCKET_ERROR == recv(clConnections[index], (char*)&msgSize, sizeof(int), NULL))
+        if (SOCKET_ERROR == recv(index, (char*)&msgSize, sizeof(int), NULL))
         {
             std::cout << "Error SOCKET_ERROR!\n" << "  SOCKET " << index << "\n";
-            ths[index].detach();
+          //  ths[index].detach();
+          //  ths.erase(index);
+          //ths[index].detach();
+
+            // создаем строку типа :  "\"noname325\" leaves the chat"
+            int namesize = (clConnections[index].length());
+            Size2 = namesize + 19;   
+            clMsg2 = new char[Size2];
+            memset(clMsg2, 0, Size2);
+            strcat(clMsg2, "\"");
+            strcat(clMsg2, clConnections[index].c_str()); // имя
+            strcat(clMsg2, "\" leaves the chat");
+            MassSending(&clConnections, clMsg2, Size2,true, index);
+            std::cout << clMsg2<<"\n";
+            delete[] clMsg2;
+            clConnections.erase(index);
             break;
         }
+
         clMsg = new char[msgSize + 1];
-        recv(clConnections[index], clMsg, msgSize, NULL);
+        recv(index, clMsg, msgSize, NULL);
         clMsg[msgSize] = '\0';
-        for (int i = 0; i <= clConnections.size() - 1; ++i)
-            if (i != index) {
-                send(clConnections[i], (char*)&msgSize, sizeof(int), NULL);
-                send(clConnections[i], clMsg, msgSize, NULL);
+        if (ChangeName(clMsg, msgSize)) 
+        { 
+            // создаем строку типа :  "\"noname325\" changed name to \""
+            int namesize = (clConnections[index].length());
+            Size2 = namesize + msgSize + 13;   // "-newname 123" "\"noname325\" changed name to \"123\""
+            clMsg2 = new char[Size2];
+            memset(clMsg2, 0, Size2);
+            strcat(clMsg2, "\"");
+            strcat(clMsg2, clConnections[index].c_str()); // старое имя
+            strcat(clMsg2, "\" changed name to \"");
+
+            // меняем имя
+            int pos{9};
+            clConnections[index]="";  
+            while (clMsg[pos])
+            {
+                clConnections[index] += clMsg[pos++];
             }
+
+            // дописываем новое имя в конец строки и получаем строку типа :"\"noname325\" changed name to \"123\""
+            strcat(clMsg2, clConnections[index].c_str()); // новое имя
+            strcat(clMsg2, "\"");
+//            delete[] clMsg;
+//            continue;
+
+        }
+        else
+        {
+            int namesize = (clConnections[index].size());
+            Size2 = namesize + msgSize + 4;
+            clMsg2 = new char[Size2];
+
+            memset(clMsg2, 0, Size2);
+            strcat(clMsg2, clConnections[index].c_str());
+            strcat(clMsg2, " : ");
+            strcat(clMsg2, clMsg);
+        }
+
+        MassSending(&clConnections, clMsg2, Size2,0,0);
+
+        delete[] clMsg2;
         delete[] clMsg;
     }
     };
@@ -89,23 +148,31 @@ int main()
     while (1)
     {
         int msgSize{ 0 };
-        clConnections.emplace_back();
-        if (!(clConnections[clConnections.size() - 1] = accept(sockListen, (SOCKADDR*)&addr, &sizeOfAddr)))
+        //clConnections.emplace("client",(SOCKET) 0);
+        SOCKET Stmp;
+        if (!(Stmp = accept(sockListen, (SOCKADDR*)&addr, &sizeOfAddr)))
         {
             std::cout << "Error newConnect!\n";  system("pause"); exit(EXIT_FAILURE);
         }
-        else std::cout << "Succesfull Connect with a client " << clConnections.size() - 1 << " !\n";
-        welcomeMsg = "Test message " + std::to_string(clConnections.size());
-        msgSize = welcomeMsg.size();
-        send(clConnections[clConnections.size() - 1], (char*)&msgSize, sizeof(int), NULL);
-        send(clConnections[clConnections.size() - 1], welcomeMsg.c_str(), msgSize, NULL);
-        ths.emplace_back(ClientHandler, (clConnections.size() - 1));
+        else 
+        {
+            clConnections[Stmp] = ("noname"+ std::to_string((int)Stmp+135));
+            std::cout << "Succesfull Connect with a client ! Socket: " << Stmp << " !\n";
+            std::cout << "Client name: " << clConnections[Stmp] << ".\n";
+
+            welcomeMsg = "Welcom "+ clConnections[Stmp] +"! You are connected to Server! Use command : \"-newname <your name>\" to change name\n";
+            msgSize = welcomeMsg.size();
+            send(Stmp, (char*)&msgSize, sizeof(int), NULL);
+            send(Stmp, welcomeMsg.c_str(), msgSize, NULL);
+           // ths.emplace(Stmp,(ClientHandler, Stmp));
+            ths.emplace_back(ClientHandler, Stmp);
+        }
     }
 
     // безопасное завершение потоков и WSA
     for (auto& t : ths)
+        // t.second.join();
         t.join();
-
     WSACleanup();
     system("pause");
 }
@@ -159,5 +226,25 @@ void addrinf_out(ADDRINFOA& inf, PADDRINFOA res)
 
     }
     freeaddrinfo(res);
+}
 
+bool ChangeName(const char* str, int msgSize)
+{
+    const char tampl[] = "-newname ";
+    int i{ 0 };
+    while (str[i] && i<9)
+    {
+        if (str[i] != tampl[i++]) break;
+    }
+    return (i == 9);
+}
+
+void MassSending(const std::map <SOCKET, std::string> *clConnections, const char *clMsg2, int Size2, bool except, SOCKET sock)
+{
+    for (auto& p : *clConnections)
+    {
+        if (except && p.first == sock) continue;
+        send(p.first, (char*)&Size2, sizeof(int), NULL);
+        send(p.first, clMsg2, Size2, NULL);
+    }
 }
