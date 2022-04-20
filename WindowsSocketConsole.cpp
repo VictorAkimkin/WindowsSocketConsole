@@ -35,8 +35,8 @@ int main()
     SOCKET sockListen;
     // клиентские сокеты и потоки
     std::map <SOCKET, std::string> clConnections;
-    std::vector <std::thread> ths;
-   // std::map <SOCKET, std::thread> ths;
+    //std::vector <std::thread> ths;
+    std::map <SOCKET, std::thread> ths;
 
     // переменная для сообщения клиенту при подключении
     std::string welcomeMsg = "";
@@ -45,6 +45,9 @@ int main()
     ADDRINFOA inf = { 0 };
     PADDRINFOA res = NULL;
 
+    setlocale(LC_ALL, "RUS");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
 
 
     if (WSAStartup(DllVers, &wsaData)) {
@@ -77,9 +80,6 @@ int main()
         if (SOCKET_ERROR == recv(index, (char*)&msgSize, sizeof(int), NULL))
         {
             std::cout << "Error SOCKET_ERROR!\n" << "  SOCKET " << index << "\n";
-          //  ths[index].detach();
-          //  ths.erase(index);
-          //ths[index].detach();
 
             // создаем строку типа :  "\"noname325\" leaves the chat"
             int namesize = (clConnections[index].length());
@@ -93,6 +93,10 @@ int main()
             std::cout << clMsg2<<"\n";
             delete[] clMsg2;
             clConnections.erase(index);
+
+            ths[index].detach();
+            ths.erase(index);
+
             break;
         }
 
@@ -121,12 +125,11 @@ int main()
             // дописываем новое имя в конец строки и получаем строку типа :"\"noname325\" changed name to \"123\""
             strcat(clMsg2, clConnections[index].c_str()); // новое имя
             strcat(clMsg2, "\"");
-//            delete[] clMsg;
-//            continue;
-
+            MassSending(&clConnections, clMsg2, Size2, 0, 0);
         }
         else
         {
+            // создаем строку типа :  "\"noname325\" : <сообщение>"
             int namesize = (clConnections[index].size());
             Size2 = namesize + msgSize + 4;
             clMsg2 = new char[Size2];
@@ -135,10 +138,10 @@ int main()
             strcat(clMsg2, clConnections[index].c_str());
             strcat(clMsg2, " : ");
             strcat(clMsg2, clMsg);
+            MassSending(&clConnections, clMsg2, Size2, true, index);
         }
 
-        MassSending(&clConnections, clMsg2, Size2,0,0);
-
+        
         delete[] clMsg2;
         delete[] clMsg;
     }
@@ -164,15 +167,15 @@ int main()
             msgSize = welcomeMsg.size();
             send(Stmp, (char*)&msgSize, sizeof(int), NULL);
             send(Stmp, welcomeMsg.c_str(), msgSize, NULL);
-           // ths.emplace(Stmp,(ClientHandler, Stmp));
-            ths.emplace_back(ClientHandler, Stmp);
+            ths[Stmp]= std::thread (ClientHandler, Stmp);// map
+            //ths.emplace_back(ClientHandler, Stmp); // vector
         }
     }
 
     // безопасное завершение потоков и WSA
     for (auto& t : ths)
         // t.second.join();
-        t.join();
+        t.second.join();
     WSACleanup();
     system("pause");
 }

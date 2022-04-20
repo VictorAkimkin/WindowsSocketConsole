@@ -33,6 +33,10 @@ int main()
     // переменная для контроля состояния соединения с сервером
     bool work = true;
 
+    setlocale(LC_ALL, "RUS");
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+
 
     if (WSAStartup(DllVers, &wsaData)) {
         std::cout << "Error WSAData!\n"; exit(EXIT_FAILURE);
