@@ -160,10 +160,10 @@ int main()
         else 
         {
             clConnections[Stmp] = ("noname"+ std::to_string((int)Stmp+135));
-            std::cout << "Succesfull Connect with a client ! Socket: " << Stmp << " !\n";
+            std::cout << "Succesfull Connect with a client! Socket: " << Stmp << "\n";
             std::cout << "Client name: " << clConnections[Stmp] << ".\n";
 
-            welcomeMsg = "Welcom "+ clConnections[Stmp] +"! You are connected to Server! Use command : \"-newname <your name>\" to change name\n";
+            welcomeMsg = "Welcom "+ clConnections[Stmp] +" ! Use command : \"-newname <your name>\" to change name\n";
             msgSize = welcomeMsg.size();
             send(Stmp, (char*)&msgSize, sizeof(int), NULL);
             send(Stmp, welcomeMsg.c_str(), msgSize, NULL);
