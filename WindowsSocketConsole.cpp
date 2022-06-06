@@ -151,7 +151,7 @@ int main()
     while (1)
     {
         int msgSize{ 0 };
-        //clConnections.emplace("client",(SOCKET) 0);
+
         SOCKET Stmp;
         if (!(Stmp = accept(sockListen, (SOCKADDR*)&addr, &sizeOfAddr)))
         {
@@ -179,7 +179,7 @@ int main()
     WSACleanup();
     system("pause");
 }
-
+// вывод в консоль информации о сервере
 void addrinf_out(ADDRINFOA& inf, PADDRINFOA res)
 {
     PADDRINFOA ptr = NULL;
@@ -230,7 +230,7 @@ void addrinf_out(ADDRINFOA& inf, PADDRINFOA res)
     }
     freeaddrinfo(res);
 }
-
+// проверка строку на содержащуюся в ней команду смены имени
 bool ChangeName(const char* str, int msgSize)
 {
     const char tampl[] = "-newname ";
@@ -241,13 +241,14 @@ bool ChangeName(const char* str, int msgSize)
     }
     return (i == 9);
 }
-
-void MassSending(const std::map <SOCKET, std::string> *clConnections, const char *clMsg2, int Size2, bool except, SOCKET sock)
+// рассылка сообщения clMsg по всем сокетам map-контейнера сокетов либо(except)
+// исключая определенный сокет(sock) из рассылки либо не исключая
+void MassSending(const std::map <SOCKET, std::string> *clConnections, const char *clMsg, int Size, bool except, SOCKET sock)
 {
     for (auto& p : *clConnections)
     {
         if (except && p.first == sock) continue;
-        send(p.first, (char*)&Size2, sizeof(int), NULL);
-        send(p.first, clMsg2, Size2, NULL);
+        send(p.first, (char*)&Size, sizeof(int), NULL);
+        send(p.first, clMsg, Size, NULL);
     }
 }
