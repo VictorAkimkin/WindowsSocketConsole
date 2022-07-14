@@ -49,28 +49,27 @@ int main()
     }
     else std::cout << "You have successfully connected to the server!\nServer IP: "<< srvIP<< "\n";
 
-    // Лямбда функция для приема сообщений от сервера
-    auto srvHandler = [&]()
-    { char* inMsg;
-    int msgSize{ 0 };
-
-    while (1)
-    {
-        if (SOCKET_ERROR == recv(Connect, (char*)&msgSize, sizeof(int), NULL))
+    // Лямбда выражение в потоке для приема сообщений от сервера
+    std::thread th([&]()
         {
-            std::cout << "Error ServerDisConnected!\n";
-            work = false;
-            break;
-        }
-        inMsg = new char[msgSize + 1];
-        recv(Connect, inMsg, msgSize, NULL);
-        inMsg[msgSize] = '\0';
-        std::cout << inMsg; std::cout << "\n";
-        delete[] inMsg;
-    }
-    };
+            char* inMsg;
+            int msgSize{ 0 };
 
-    std::thread th(srvHandler); // вызов лямбда-функции в отдельном потоке
+            while (1)
+            {
+                if (SOCKET_ERROR == recv(Connect, (char*)&msgSize, sizeof(int), NULL))
+                {
+                    std::cout << "Error ServerDisConnected!\n";
+                    work = false;
+                    break;
+                }
+                inMsg = new char[msgSize + 1];
+                recv(Connect, inMsg, msgSize, NULL);
+                inMsg[msgSize] = '\0';
+                std::cout << inMsg; std::cout << "\n";
+                delete[] inMsg;
+            }
+        }); 
 
     // цикл для ввода с консоли сообщений и отправки их на сервер
     do 
