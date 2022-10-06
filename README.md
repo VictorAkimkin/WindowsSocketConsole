@@ -1,0 +1,2 @@
+# WindowsSocketConsole
+Консольный локальный чат
