@@ -18,7 +18,6 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
-
 void addrinf_out(ADDRINFOA& inf, PADDRINFOA res);// выводит в консоль данные из addrinfo* res
 bool ChangeName(const char* str, int msgSize);// проверка наличия команды смены имени клиента
 void MassSending(const std::map <SOCKET, std::string>* clConnections, const char* clMsg2,

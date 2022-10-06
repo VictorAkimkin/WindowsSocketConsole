@@ -15,6 +15,7 @@
 #include <thread>
 
 #pragma comment(lib, "Ws2_32.lib")
+
 const char* GetIP();
 int main()
 {
